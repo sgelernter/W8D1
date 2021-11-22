@@ -8,7 +8,7 @@ require 'byebug'
 class ControllerBase
   
   attr_reader :req, :res, :params
-  attr_writer :already_built_response
+  attr_writer :already_built_response, :session
 
   # Setup the controller
   def initialize(req, res)
@@ -37,6 +37,7 @@ class ControllerBase
     raise 'double render error' if already_built_response?
     res.write(content) 
     res.content_type = content_type 
+    self.session.store_session(res)
     self.already_built_response = true 
   end
 
@@ -50,11 +51,13 @@ class ControllerBase
     full_path = "#{top_path}/../views/#{controller_path_name}/#{template_name}.html.erb"
     content = File.read(full_path)
     parsed_content = ERB.new(content).result(binding)
+    self.session.store_session(res)
     render_content(parsed_content, 'text/html')
   end
 
   # method exposing a `Session` object
   def session
+    @session ||= Session.new(req)
   end
 
   # use this with the router to call action_name (:index, :show, :create...)
